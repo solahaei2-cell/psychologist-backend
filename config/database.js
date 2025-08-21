@@ -1,31 +1,18 @@
 // database.js
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '', // اجازه می‌ده پسورد خالی هم کار کنه
-    database: process.env.DB_NAME || 'psychologist_ai',
-    port: process.env.DB_PORT || 3306,
-    charset: 'utf8mb4',
-    timezone: '+00:00'
-};
-
-// ساختن pool برای مدیریت connection
-const pool = mysql.createPool({
-    ...dbConfig,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL, // مستقیم از DATABASE_URL استفاده کن
+    ssl: { rejectUnauthorized: false } // برای Render لازم است
 });
 
 // تست اتصال به دیتابیس
 async function testConnection() {
     try {
-        const connection = await pool.getConnection();
+        const client = await pool.connect();
         console.log('✅ اتصال به دیتابیس برقرار شد');
-        connection.release();
+        client.release();
         return true;
     } catch (error) {
         console.error('❌ خطا در اتصال به دیتابیس:', error.message);
@@ -36,8 +23,8 @@ async function testConnection() {
 // اجرای یک کوئری ساده
 async function executeQuery(query, params = []) {
     try {
-        const [rows] = await pool.query(query, params);
-        return rows;
+        const result = await pool.query(query, params);
+        return result.rows;
     } catch (error) {
         console.error('❌ Database Query Error:', error.message);
         console.error('   Query:', query);
@@ -48,25 +35,22 @@ async function executeQuery(query, params = []) {
 
 // اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش
 async function executeTransaction(queries) {
-    const connection = await pool.getConnection();
-
+    const client = await pool.connect();
     try {
-        await connection.beginTransaction();
-
+        await client.query('BEGIN');
         const results = [];
         for (const { query, params } of queries) {
-            const [result] = await connection.query(query, params);
-            results.push(result);
+            const result = await client.query(query, params);
+            results.push(result.rows);
         }
-
-        await connection.commit();
+        await client.query('COMMIT');
         return results;
     } catch (error) {
-        await connection.rollback();
+        await client.query('ROLLBACK');
         console.error('❌ Transaction Error:', error.message);
         throw error;
     } finally {
-        connection.release();
+        client.release();
     }
 }
 

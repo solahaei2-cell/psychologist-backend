@@ -64,7 +64,7 @@ const validateAssessment = (req, res, next) => {
 const checkUserExists = async (req, res, next) => {
     try {
         const { email } = req.body;
-        const result = await executeQuery('SELECT id FROM users WHERE email = ?', [email]);
+        const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
         console.log('Database result:', result); // لاگ نتیجه برای چک
         if (result && result.length > 0) {
             return res.status(400).json({ success: false, message: 'این ایمیل قبلاً ثبت شده است' });

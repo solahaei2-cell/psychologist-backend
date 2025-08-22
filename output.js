@@ -1,10 +1,10 @@
-// output.txt (but actually JS code!)
+// output.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }, // Render در production SSL می‌خواهد
 });
 
 (async () => {
@@ -19,10 +19,22 @@ const pool = new Pool({
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log("✅ Table 'users' created successfully.");
+    console.log("✅ Table 'users' created successfully (or already exists).");
   } catch (err) {
-    console.error("❌ Error creating table:", err);
+    // لاگ دقیق خطا برای دیباگ
+    console.error("❌ Error creating 'users' table:", {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      where: err.where,
+      schema: err.schema,
+      table: err.table,
+      hint: err.hint,
+      stack: err.stack,
+    });
+    // اگر دوست داری حتی در صورت خطا هم سرور بالا بیاد، این خط رو حذف کن:
+    process.exitCode = 1;
   } finally {
-    pool.end();
+    await pool.end();
   }
 })();

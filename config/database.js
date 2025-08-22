@@ -1,13 +1,14 @@
-// database.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL, // مستقیم از DATABASE_URL استفاده کن
-    ssl: { rejectUnauthorized: false } // برای Render لازم است
+    ssl: { rejectUnauthorized: false }, // برای Render لازم است
+    connectionTimeoutMillis: 20000, // افزایش زمان اتصال برای جلوگیری از ETIMEDOUT
+    keepAlive: true // نگه داشتن اتصال برای پایداری
 });
 
-// تست اتصال به دیتابیس
+// تست اتصال به دیتابیس با لاگ بیشتر
 async function testConnection() {
     try {
         const client = await pool.connect();
@@ -15,25 +16,25 @@ async function testConnection() {
         client.release();
         return true;
     } catch (error) {
-        console.error('❌ خطا در اتصال به دیتابیس:', error.message);
+        console.error('❌ خطا در اتصال به دیتابیس:', error.message, error.stack); // لاگ کامل با stack
         return false;
     }
 }
 
-// اجرای یک کوئری ساده
+// اجرای یک کوئری ساده با لاگ بیشتر
 async function executeQuery(query, params = []) {
     try {
         const result = await pool.query(query, params);
         return result.rows;
     } catch (error) {
-        console.error('❌ Database Query Error:', error.message);
+        console.error('❌ Database Query Error:', error.message, error.stack);
         console.error('   Query:', query);
         console.error('   Params:', params);
         throw error;
     }
 }
 
-// اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش
+// اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش با لاگ بیشتر
 async function executeTransaction(queries) {
     const client = await pool.connect();
     try {
@@ -47,7 +48,7 @@ async function executeTransaction(queries) {
         return results;
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ Transaction Error:', error.message);
+        console.error('❌ Transaction Error:', error.message, error.stack);
         throw error;
     } finally {
         client.release();

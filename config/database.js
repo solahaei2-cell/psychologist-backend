@@ -8,7 +8,7 @@ const pool = new Pool({
     keepAlive: true // نگه داشتن اتصال برای پایداری
 });
 
-// تست اتصال به دیتابیس با لاگ بیشتر
+// تست اتصال به دیتابیس
 async function testConnection() {
     try {
         const client = await pool.connect();
@@ -16,16 +16,16 @@ async function testConnection() {
         client.release();
         return true;
     } catch (error) {
-        console.error('❌ خطا در اتصال به دیتابیس:', error.message, error.stack); // لاگ کامل با stack
+        console.error('❌ خطا در اتصال به دیتابیس:', error.message, error.stack);
         return false;
     }
 }
 
-// اجرای یک کوئری ساده با لاگ بیشتر
+// اجرای یک کوئری ساده
 async function executeQuery(query, params = []) {
     try {
         const result = await pool.query(query, params);
-        return result.rows;
+        return result; // همه اطلاعات: rows, rowCount, fields...
     } catch (error) {
         console.error('❌ Database Query Error:', error.message, error.stack);
         console.error('   Query:', query);
@@ -34,7 +34,7 @@ async function executeQuery(query, params = []) {
     }
 }
 
-// اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش با لاگ بیشتر
+// اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش
 async function executeTransaction(queries) {
     const client = await pool.connect();
     try {
@@ -42,7 +42,7 @@ async function executeTransaction(queries) {
         const results = [];
         for (const { query, params } of queries) {
             const result = await client.query(query, params);
-            results.push(result.rows);
+            results.push(result);
         }
         await client.query('COMMIT');
         return results;

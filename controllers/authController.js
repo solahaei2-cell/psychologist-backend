@@ -19,14 +19,16 @@ const register = async (req, res) => {
         const { email, password, fullName, phone } = req.body;
         const passwordHash = await bcrypt.hash(password, 12);
 
-        // اجرای کوئری
+        // اجرای کوئری با PostgreSQL
         const result = await executeQuery(
-            'INSERT INTO users (email, password_hash, full_name, phone) VALUES (?, ?, ?, ?)',
+            'INSERT INTO users (email, password_hash, full_name, phone) VALUES ($1, $2, $3, $4) RETURNING id',
             [email, passwordHash, fullName, phone]
         );
 
+        const userId = result.rows[0].id;
+
         // ارسال ایمیل تأیید
-        const verificationToken = jwt.sign({ userId: result.insertId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const verificationToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
         const verificationLink = `http://localhost:5000/api/auth/verify-email/${verificationToken}`;
 
         await transporter.sendMail({
@@ -49,13 +51,13 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const users = await executeQuery('SELECT * FROM users WHERE email = ?', [email]);
+        const result = await executeQuery('SELECT * FROM users WHERE email = $1', [email]);
 
-        if (!users || users.length === 0) {
+        if (!result.rows || result.rows.length === 0) {
             return res.status(400).json({ success: false, message: 'کاربر یافت نشد' });
         }
 
-        const user = users[0];
+        const user = result.rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
@@ -63,7 +65,7 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
         res.json({ success: true, token });
     } catch (error) {
@@ -81,7 +83,7 @@ const verifyEmail = async (req, res) => {
     try {
         const { token } = req.params;
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        await executeQuery('UPDATE users SET is_verified = TRUE WHERE id = ?', [decoded.userId]);
+        await executeQuery('UPDATE users SET is_verified = TRUE WHERE id = $1', [decoded.userId]);
         res.json({ success: true, message: 'ایمیل با موفقیت تأیید شد' });
     } catch (error) {
         res.status(400).json({ success: false, message: 'توکن نامعتبر یا منقضی شده است' });
@@ -92,13 +94,14 @@ const verifyEmail = async (req, res) => {
 const resendVerification = async (req, res) => {
     try {
         const { email } = req.body;
-        const users = await executeQuery('SELECT id FROM users WHERE email = ?', [email]);
+        const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
 
-        if (!users || users.length === 0) {
+        if (!result.rows || result.rows.length === 0) {
             return res.status(400).json({ success: false, message: 'کاربر یافت نشد' });
         }
 
-        const verificationToken = jwt.sign({ userId: users[0].id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const userId = result.rows[0].id;
+        const verificationToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
         const verificationLink = `http://localhost:5000/api/auth/verify-email/${verificationToken}`;
 
         await transporter.sendMail({
@@ -118,13 +121,14 @@ const resendVerification = async (req, res) => {
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const users = await executeQuery('SELECT id FROM users WHERE email = ?', [email]);
+        const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
 
-        if (!users || users.length === 0) {
+        if (!result.rows || result.rows.length === 0) {
             return res.status(400).json({ success: false, message: 'کاربر یافت نشد' });
         }
 
-        const resetToken = jwt.sign({ userId: users[0].id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const userId = result.rows[0].id;
+        const resetToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
         const resetLink = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
 
         await transporter.sendMail({
@@ -147,7 +151,7 @@ const resetPassword = async (req, res) => {
         const { newPassword } = req.body;
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const passwordHash = await bcrypt.hash(newPassword, 12);
-        await executeQuery('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, decoded.userId]);
+        await executeQuery('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, decoded.userId]);
         res.json({ success: true, message: 'رمز عبور با موفقیت تغییر کرد' });
     } catch (error) {
         res.status(400).json({ success: false, message: 'توکن نامعتبر یا منقضی شده است' });
@@ -157,11 +161,11 @@ const resetPassword = async (req, res) => {
 // گرفتن پروفایل کاربر
 const getUserProfile = async (req, res) => {
     try {
-        const users = await executeQuery(
-            'SELECT id, email, full_name, phone, is_verified FROM users WHERE id = ?',
+        const result = await executeQuery(
+            'SELECT id, email, full_name, phone, is_verified FROM users WHERE id = $1',
             [req.user.userId]
         );
-        res.json({ success: true, data: users[0] });
+        res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
@@ -171,11 +175,10 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const { fullName, phone } = req.body;
-        await executeQuery('UPDATE users SET full_name = ?, phone = ? WHERE id = ?', [
-            fullName,
-            phone,
-            req.user.userId
-        ]);
+        await executeQuery(
+            'UPDATE users SET full_name = $1, phone = $2 WHERE id = $3',
+            [fullName, phone, req.user.userId]
+        );
         res.json({ success: true, message: 'پروفایل با موفقیت به‌روزرسانی شد' });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });

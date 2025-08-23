@@ -6,8 +6,8 @@ const { executeQuery } = require('../config/database');
 // گرفتن پروفایل کاربر
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
-        const [user] = await executeQuery(
-            'SELECT id, email, full_name, phone, total_points FROM users WHERE id = ?',
+        const user = await executeQuery(
+            'SELECT id, email, full_name, phone, total_points FROM users WHERE id = $1',
             [req.user.userId]
         );
         res.json({ success: true, data: user[0] });

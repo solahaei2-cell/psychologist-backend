@@ -6,8 +6,8 @@ const { executeQuery } = require('../config/database');
 // گرفتن چت‌های کاربر
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const [chats] = await executeQuery(
-            'SELECT id, session_type, started_at FROM chat_sessions WHERE user_id = ? ORDER BY started_at DESC',
+        const chats = await executeQuery(
+            'SELECT id, session_type, started_at FROM chat_sessions WHERE user_id = $1 ORDER BY started_at DESC',
             [req.user.userId]
         );
         res.json({ success: true, data: chats });

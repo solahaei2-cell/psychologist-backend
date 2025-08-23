@@ -6,7 +6,7 @@ const { executeQuery } = require('../config/database');
 // گرفتن همه محتواها (با اختیاری احراز هویت)
 router.get('/', optionalAuth, async (req, res) => {
     try {
-        const [contents] = await executeQuery(
+        const contents = await executeQuery(
             'SELECT id, title, content_type, category, duration_minutes, view_count, like_count FROM content_library WHERE is_published = TRUE ORDER BY view_count DESC'
         );
         res.json({ success: true, data: contents });
@@ -18,8 +18,8 @@ router.get('/', optionalAuth, async (req, res) => {
 // گرفتن یک محتوا خاص
 router.get('/:id', optionalAuth, async (req, res) => {
     try {
-        const [contents] = await executeQuery(
-            'SELECT * FROM content_library WHERE id = ? AND is_published = TRUE',
+        const contents = await executeQuery(
+            'SELECT * FROM content_library WHERE id = $1 AND is_published = TRUE',
             [req.params.id]
         );
         if (contents.length === 0) {
@@ -35,7 +35,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 router.post('/:id/like', authenticateToken, async (req, res) => {
     try {
         await executeQuery(
-            'UPDATE content_library SET like_count = like_count + 1 WHERE id = ?',
+            'UPDATE content_library SET like_count = like_count + 1 WHERE id = $1',
             [req.params.id]
         );
         res.json({ success: true, message: 'محتوا لایک شد' });
@@ -48,7 +48,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
 router.post('/:id/complete', authenticateToken, async (req, res) => {
     try {
         await executeQuery(
-            'INSERT INTO user_progress (user_id, activity_type, related_content_id, points_earned) VALUES (?, ?, ?, ?)',
+            'INSERT INTO user_progress (user_id, activity_type, related_content_id, points_earned) VALUES ($1, $2, $3, $4)',
             [req.user.userId, 'content_completed', req.params.id, 10]
         );
         res.json({ success: true, message: 'محتوا تکمیل شد' });

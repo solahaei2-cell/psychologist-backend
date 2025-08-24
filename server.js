@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
-const path = require('path');
 require('dotenv').config();
 
 // Middleware
@@ -38,7 +37,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: 'خطای داخلی سرور' });
 });
 
-const PORT = process.env.PORT || 5000;
+// تنظیم پورت فقط برای Render
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
     console.log(`🚀 سرور روان‌شناس هوشمند راه‌اندازی شد! 📍 آدرس: http://localhost:${PORT}`);
 });

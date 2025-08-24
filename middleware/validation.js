@@ -15,7 +15,8 @@ const validatePassword = (password) => {
 
 // اعتبارسنجی نام کامل
 const validateFullName = (fullName) => {
-    const fullNameRegex = /^[\u0600-\u06FF\s]{2,}$/;
+    const fullNameRegex = /^[\u0600-\u06FF\s\u2000-\u200F]{2,}$/;
+    console.log(`FullName: ${fullName}, Length: ${fullName.length}, Valid: ${fullNameRegex.test(fullName)}`);
     return fullNameRegex.test(fullName);
 };
 
@@ -91,40 +92,4 @@ const validateAssessment = (req, res, next) => {
     }
 
     if (typeof total_score !== 'number' || total_score < 0 || total_score > max_possible_score) {
-        return res.status(400).json({ success: false, message: 'امتیاز کل نامعتبر است' });
-    }
-
-    if (
-        !result_category ||
-        !['excellent', 'good', 'moderate', 'concerning', 'critical'].includes(result_category)
-    ) {
-        return res.status(400).json({ success: false, message: 'دسته‌بندی نتیجه نامعتبر است' });
-    }
-
-    next();
-};
-
-// چک کردن وجود کاربر
-const checkUserExists = async (req, res, next) => {
-    try {
-        const { email } = req.body;
-        const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
-        console.log('CheckUserExists result:', result.rows);
-
-        if (result.rows.length > 0) {
-            return res.status(400).json({ success: false, message: 'این ایمیل قبلاً ثبت شده است' });
-        }
-
-        next();
-    } catch (error) {
-        console.error('❌ Database error in checkUserExists:', error.message, error.stack);
-        res.status(500).json({ success: false, message: 'خطا در چک کردن کاربر' });
-    }
-};
-
-module.exports = {
-    validateRegister,
-    validateLogin,
-    validateAssessment,
-    checkUserExists
-};
+        return res.status(400).json({ success: false, message: 'امتیاز کل نامعتبر است

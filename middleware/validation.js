@@ -6,15 +6,16 @@ const validateEmail = (email) => {
     return emailRegex.test(email);
 };
 
-// اعتبارسنجی رمز عبور (حداقل 8 کاراکتر، شامل حرف و عدد)
+// اعتبارسنجی رمز عبور
 const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    console.log(`Password: ${password}, Length: ${password.length}, Valid: ${passwordRegex.test(password)}`);
     return passwordRegex.test(password);
 };
 
-// اعتبارسنجی نام کامل (فقط حروف فارسی/عربی و فاصله، حداقل 2 کاراکتر)
+// اعتبارسنجی نام کامل
 const validateFullName = (fullName) => {
-    const fullNameRegex = /^[\u0600-\u06FF\s]{2,}$/; 
+    const fullNameRegex = /^[\u0600-\u06FF\s]{2,}$/;
     return fullNameRegex.test(fullName);
 };
 
@@ -108,15 +109,15 @@ const checkUserExists = async (req, res, next) => {
     try {
         const { email } = req.body;
         const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
-        console.log('Database result:', result); // لاگ نتیجه برای بررسی
+        console.log('CheckUserExists result:', result.rows);
 
-        if (result && result.length > 0) {
+        if (result.rows.length > 0) {
             return res.status(400).json({ success: false, message: 'این ایمیل قبلاً ثبت شده است' });
         }
 
         next();
     } catch (error) {
-        console.error('Database error:', error); // لاگ خطا
+        console.error('❌ Database error in checkUserExists:', error.message, error.stack);
         res.status(500).json({ success: false, message: 'خطا در چک کردن کاربر' });
     }
 };

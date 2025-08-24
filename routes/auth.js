@@ -2,22 +2,18 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { validateRegister, validateLogin, checkUserExists } = require('../middleware/validation');
-const {
-    register,
-    login,
-    logout,
-    // اگر تو فایل کنترلر توابع دیگری داری، ایمپورت‌شان کن
-} = require('../controllers/authController');
+const { register, verifyEmail, login, logout } = require('../controllers/authController');
 
-// Register a new user
+// ثبت‌نام
 router.post('/register', checkUserExists, validateRegister, register);
 
-// Login user
+// endpoint تأیید ایمیل (GET زیرا لینک از ایمیل باز می‌شود)
+router.get('/verify-email/:token', verifyEmail);
+
+// ورود
 router.post('/login', validateLogin, login);
 
-// Logout user
+// خروج
 router.post('/logout', authenticateToken, logout);
-
-// بقیه مسیرها اگر لازم بود اضافه کن...
 
 module.exports = router;

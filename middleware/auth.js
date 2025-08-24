@@ -15,19 +15,23 @@ const authenticateToken = async (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await executeQuery(
-            'SELECT id, email, full_name, is_active, is_verified FROM users WHERE id = ?',
+        const result = await executeQuery(
+            'SELECT id, email, full_name, is_active, is_verified FROM users WHERE id = $1',
             [decoded.userId]
         );
 
-        if (user.length === 0) {
+        const rows = result.rows || [];
+
+        if (rows.length === 0) {
             return res.status(401).json({
                 success: false,
                 message: 'کاربر یافت نشد'
             });
         }
 
-        if (!user[0].is_active) {
+        const user = rows[0];
+
+        if (user.is_active === false) {
             return res.status(401).json({
                 success: false,
                 message: 'حساب کاربری غیرفعال است'
@@ -35,14 +39,14 @@ const authenticateToken = async (req, res, next) => {
         }
 
         req.user = {
-            userId: user[0].id,
-            email: user[0].email,
-            fullName: user[0].full_name,
-            isVerified: user[0].is_verified
+            userId: user.id,
+            email: user.email,
+            fullName: user.full_name,
+            isVerified: user.is_verified
         };
 
         await executeQuery(
-            'UPDATE users SET last_activity = NOW() WHERE id = ?',
+            'UPDATE users SET last_activity = NOW() WHERE id = $1',
             [decoded.userId]
         );
 
@@ -77,16 +81,18 @@ const optionalAuth = async (req, res, next) => {
 
         if (token) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await executeQuery(
-                'SELECT id, email, full_name FROM users WHERE id = ? AND is_active = TRUE',
+            const result = await executeQuery(
+                'SELECT id, email, full_name FROM users WHERE id = $1 AND is_active = TRUE',
                 [decoded.userId]
             );
 
-            if (user.length > 0) {
+            const rows = result.rows || [];
+
+            if (rows.length > 0) {
                 req.user = {
-                    userId: user[0].id,
-                    email: user[0].email,
-                    fullName: user[0].full_name
+                    userId: rows[0].id,
+                    email: rows[0].email,
+                    fullName: rows[0].full_name
                 };
             }
         }

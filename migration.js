@@ -32,7 +32,9 @@ async function migrate() {
             is_verified BOOLEAN DEFAULT FALSE,
             is_active BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_login TIMESTAMPTZ,
+            last_activity TIMESTAMPTZ
         );
     `;
 
@@ -42,22 +44,24 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS phone TEXT,
         ADD COLUMN IF NOT EXISTS verification_token TEXT,
         ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;
+        ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS last_activity TIMESTAMPTZ;
     `;
 
     // تابع و تریگر برای آپدیت خودکار updated_at
     const createUpdateFunc = `
         CREATE OR REPLACE FUNCTION set_updated_at()
-        RETURNS TRIGGER AS $$
+        RETURNS TRIGGER AS $$  
         BEGIN
             NEW.updated_at = NOW();
             RETURN NEW;
         END;
-        $$ LANGUAGE plpgsql;
+          $$ LANGUAGE plpgsql;
     `;
 
     const createUpdateTrigger = `
-        DO $$
+        DO $$  
         BEGIN
             IF NOT EXISTS (
                 SELECT 1 FROM pg_trigger WHERE tgname = 'users_set_updated_at'
@@ -66,7 +70,7 @@ async function migrate() {
                 BEFORE UPDATE ON users
                 FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
             END IF;
-        END $$;
+        END   $$;
     `;
 
     const client = await pool.connect();

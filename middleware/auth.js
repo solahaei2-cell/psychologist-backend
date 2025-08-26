@@ -1,3 +1,4 @@
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const { executeQuery } = require('../config/database');
 
@@ -20,16 +21,14 @@ const authenticateToken = async (req, res, next) => {
             [decoded.userId]
         );
 
-        const rows = result.rows || [];
-
-        if (rows.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
                 message: 'کاربر یافت نشد'
             });
         }
 
-        const user = rows[0];
+        const user = result.rows[0];
 
         if (user.is_active === false) {
             return res.status(401).json({
@@ -66,7 +65,7 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
-        console.error('Auth middleware error:', error);
+        console.error('Auth middleware error:', error.message, error.stack);
         res.status(500).json({
             success: false,
             message: 'خطا در احراز هویت'
@@ -86,19 +85,18 @@ const optionalAuth = async (req, res, next) => {
                 [decoded.userId]
             );
 
-            const rows = result.rows || [];
-
-            if (rows.length > 0) {
+            if (result.rows.length > 0) {
                 req.user = {
-                    userId: rows[0].id,
-                    email: rows[0].email,
-                    fullName: rows[0].full_name
+                    userId: result.rows[0].id,
+                    email: result.rows[0].email,
+                    fullName: result.rows[0].full_name
                 };
             }
         }
 
         next();
     } catch (error) {
+        console.error('OptionalAuth error:', error.message);
         next();
     }
 };

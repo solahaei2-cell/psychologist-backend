@@ -1,30 +1,28 @@
-const mysql = require('mysql2/promise');
+// config/database.js
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASS || '',
-    database: process.env.DB_NAME || 'psychologist_db',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 20000,
+    keepAlive: true
 });
 
-// اجرای یک کوئری ساده
 async function executeQuery(query, params = []) {
+    const client = await pool.connect();
     try {
-        const [rows, fields] = await pool.execute(query, params);
-        return { rows, fields };
+        console.log('Executing query:', query, 'with params:', params);
+        const result = await client.query(query, params);
+        return result;
     } catch (error) {
         console.error('❌ Database Query Error:', error.message, error.stack);
         console.error('   Query:', query);
         console.error('   Params:', params);
         throw error;
+    } finally {
+        client.release();
     }
 }
 
-module.exports = {
-    pool,
-    executeQuery
-};
+module.exports = { executeQuery, pool };

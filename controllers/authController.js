@@ -20,31 +20,27 @@ const register = async (req, res) => {
 
         const { email, password, fullName, phone } = req.body;
 
-        if (!email || !password || !fullName) {
-            return res.status(400).json({ success: false, message: 'فیلدهای ضروری ناقص هستند.' });
-        }
-
+        // اعتبارسنجی توی validateRegister انجام شده
         const passwordHash = await bcrypt.hash(password, 12);
-
         const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        let columns = ['email', 'password_hash', 'full_name', 'verification_token'];
-        let values = [email, passwordHash, fullName, verificationToken];
-        let placeholders = columns.map(_ => '?');
+        const columns = ['email', 'password_hash', 'full_name', 'verification_token'];
+        const values = [email, passwordHash, fullName, verificationToken];
+        const placeholders = ['$1', '$2', '$3', '$4'];
 
-        if (phone) {
+        if (phone !== undefined && phone !== null && phone !== '') {
             columns.push('phone');
             values.push(phone);
-            placeholders.push('?');
+            placeholders.push(`$${values.length}`);
         }
 
-        const query = `INSERT INTO users (${columns.join(', ')})
-                       VALUES (${placeholders.join(', ')})`;
-        await executeQuery(query, values);
+        const query = `INSERT INTO users (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING id, email`;
+        const result = await executeQuery(query, values);
 
-        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.BASE_URL || 'https://psychologist-ai-fhcp.onrender.com';
         const verificationLink = `${baseUrl}/api/auth/verify-email/${verificationToken}`;
 
+        console.log('Verification token:', verificationToken);
         console.log('Verification link:', verificationLink);
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
@@ -60,9 +56,8 @@ const register = async (req, res) => {
             success: true,
             message: 'کاربر ثبت شد. لطفاً ایمیل را تأیید کنید.'
         });
-
     } catch (error) {
-        console.error('❌ Error in register:', error, error.stack);
+        console.error('❌ Error in register:', error.message, error.stack);
         res.status(500).json({ success: false, message: 'خطای سرور در ثبت‌نام.' });
     }
 };
@@ -73,19 +68,19 @@ const verifyEmail = async (req, res) => {
         const { token } = req.params;
         jwt.verify(token, process.env.JWT_SECRET);
 
-        const [result] = await executeQuery(
-            'UPDATE users SET is_verified = 1, is_active = 1, verification_token = NULL WHERE verification_token = ?',
+        const result = await executeQuery(
+            'UPDATE users SET is_verified = TRUE, is_active = TRUE, verification_token = NULL WHERE verification_token = $1 RETURNING id, email',
             [token]
         );
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
+            console.log('Token not found:', token);
             return res.status(404).json({ success: false, message: 'توکن نامعتبر یا منقضی شده است.' });
         }
 
         res.json({ success: true, message: 'ایمیل با موفقیت تأیید شد.' });
-
     } catch (error) {
-        console.error('❌ verifyEmail Error:', error);
+        console.error('❌ verifyEmail Error:', error.message, error.stack);
         res.status(500).json({ success: false, message: 'خطا در تأیید ایمیل.' });
     }
 };
@@ -100,12 +95,12 @@ const login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'ایمیل و رمز عبور الزامی است.' });
         }
 
-        const { rows } = await executeQuery('SELECT * FROM users WHERE email = ?', [email]);
-        if (rows.length === 0) {
+        const result = await executeQuery('SELECT * FROM users WHERE email = $1', [email]);
+        if (result.rows.length === 0) {
             return res.status(400).json({ success: false, message: 'کاربر یافت نشد.' });
         }
 
-        const user = rows[0];
+        const user = result.rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'رمز عبور اشتباه است.' });
@@ -116,11 +111,11 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
         res.json({ success: true, token });
     } catch (error) {
-        console.error('❌ Login Error:', error);
+        console.error('❌ Login Error:', error.message, error.stack);
         res.status(500).json({ success: false, message: 'خطای سرور در ورود.' });
     }
 };

@@ -3,18 +3,21 @@ const { executeQuery } = require('../config/database');
 // اعتبارسنجی ایمیل
 const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    console.log(`ValidateEmail: ${email}, Valid: ${emailRegex.test(email)}`);
     return emailRegex.test(email);
 };
 
 // اعتبارسنجی رمز عبور
 const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+    console.log(`ValidatePassword: ${password}, Length: ${password.length}, Valid: ${passwordRegex.test(password)}`);
     return passwordRegex.test(password);
 };
 
 // اعتبارسنجی نام کامل
 const validateFullName = (fullName) => {
     const fullNameRegex = /^[\u0600-\u06FF\s\u2000-\u200F]{2,}$/;
+    console.log(`ValidateFullName: ${fullName}, Length: ${fullName.length}, Valid: ${fullNameRegex.test(fullName)}`);
     return fullNameRegex.test(fullName);
 };
 
@@ -63,15 +66,18 @@ const validateLogin = (req, res, next) => {
 const validateAssessment = (req, res, next) => {
     const { assessment_type, questions, answers, total_score, max_possible_score, result_category } = req.body;
 
-    if (!assessment_type || ![
-        'quick_screening',
-        'anxiety_gad7',
-        'depression_phq9',
-        'sleep_quality',
-        'life_satisfaction',
-        'stress_level',
-        'comprehensive'
-    ].includes(assessment_type)) {
+    if (
+        !assessment_type ||
+        ![
+            'quick_screening',
+            'anxiety_gad7',
+            'depression_phq9',
+            'sleep_quality',
+            'life_satisfaction',
+            'stress_level',
+            'comprehensive'
+        ].includes(assessment_type)
+    ) {
         return res.status(400).json({ success: false, message: 'نوع ارزیابی نامعتبر است' });
     }
 
@@ -91,12 +97,13 @@ const checkUserExists = async (req, res, next) => {
     try {
         const { email } = req.body;
         const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
+        console.log('CheckUserExists result:', result.rows);
         if (result.rows.length > 0) {
             return res.status(400).json({ success: false, message: 'ایمیل قبلاً ثبت شده است' });
         }
         next();
     } catch (error) {
-        console.error('❌ checkUserExists Error:', error);
+        console.error('❌ checkUserExists Error:', error.message, error.stack);
         res.status(500).json({ success: false, message: 'خطا در بررسی وجود کاربر' });
     }
 };

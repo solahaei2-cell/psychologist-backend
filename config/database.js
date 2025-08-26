@@ -1,31 +1,21 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 20000,
-    keepAlive: true
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: process.env.DB_NAME || 'psychologist_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
-
-// تست اتصال به دیتابیس
-async function testConnection() {
-    try {
-        const client = await pool.connect();
-        console.log('✅ اتصال به دیتابیس برقرار شد');
-        client.release();
-        return true;
-    } catch (error) {
-        console.error('❌ خطا در اتصال به دیتابیس:', error.message, error.stack);
-        return false;
-    }
-}
 
 // اجرای یک کوئری ساده
 async function executeQuery(query, params = []) {
     try {
-        const result = await pool.query(query, params);
-        return result; // همه اطلاعات: rows, rowCount, fields...
+        const [rows, fields] = await pool.execute(query, params);
+        return { rows, fields };
     } catch (error) {
         console.error('❌ Database Query Error:', error.message, error.stack);
         console.error('   Query:', query);
@@ -34,30 +24,7 @@ async function executeQuery(query, params = []) {
     }
 }
 
-// اجرای مجموعه‌ای از کوئری‌ها در یک تراکنش
-async function executeTransaction(queries) {
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const results = [];
-        for (const { query, params } of queries) {
-            const result = await client.query(query, params);
-            results.push(result);
-        }
-        await client.query('COMMIT');
-        return results;
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error('❌ Transaction Error:', error.message, error.stack);
-        throw error;
-    } finally {
-        client.release();
-    }
-}
-
 module.exports = {
     pool,
-    executeQuery,
-    executeTransaction,
-    testConnection
+    executeQuery
 };

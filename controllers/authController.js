@@ -30,20 +30,19 @@ const register = async (req, res) => {
 
         let columns = ['email', 'password_hash', 'full_name', 'verification_token'];
         let values = [email, passwordHash, fullName, verificationToken];
-        let placeholders = ['$1', '$2', '$3', '$4'];
+        let placeholders = columns.map(_ => '?');
 
         if (phone) {
             columns.push('phone');
             values.push(phone);
-            placeholders.push(`$${values.length}`);
+            placeholders.push('?');
         }
 
         const query = `INSERT INTO users (${columns.join(', ')})
-                       VALUES (${placeholders.join(', ')})
-                       RETURNING id, email`;
-        const result = await executeQuery(query, values);
+                       VALUES (${placeholders.join(', ')})`;
+        await executeQuery(query, values);
 
-        const baseUrl = process.env.BASE_URL || 'https://psychologist-ai-fhcp.onrender.com';
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
         const verificationLink = `${baseUrl}/api/auth/verify-email/${verificationToken}`;
 
         console.log('Verification link:', verificationLink);
@@ -63,7 +62,7 @@ const register = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error in register:', error);
+        console.error('❌ Error in register:', error, error.stack);
         res.status(500).json({ success: false, message: 'خطای سرور در ثبت‌نام.' });
     }
 };
@@ -72,14 +71,14 @@ const register = async (req, res) => {
 const verifyEmail = async (req, res) => {
     try {
         const { token } = req.params;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        jwt.verify(token, process.env.JWT_SECRET);
 
-        const updateResult = await executeQuery(
-            'UPDATE users SET is_verified = TRUE, is_active = TRUE, verification_token = NULL WHERE verification_token = $1 RETURNING id, email, is_verified',
+        const [result] = await executeQuery(
+            'UPDATE users SET is_verified = 1, is_active = 1, verification_token = NULL WHERE verification_token = ?',
             [token]
         );
 
-        if (updateResult.rows.length === 0) {
+        if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'توکن نامعتبر یا منقضی شده است.' });
         }
 
@@ -101,12 +100,12 @@ const login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'ایمیل و رمز عبور الزامی است.' });
         }
 
-        const result = await executeQuery('SELECT * FROM users WHERE email = $1', [email]);
-        if (result.rows.length === 0) {
+        const { rows } = await executeQuery('SELECT * FROM users WHERE email = ?', [email]);
+        if (rows.length === 0) {
             return res.status(400).json({ success: false, message: 'کاربر یافت نشد.' });
         }
 
-        const user = result.rows[0];
+        const user = rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'رمز عبور اشتباه است.' });
@@ -117,7 +116,7 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+        await executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
         res.json({ success: true, token });
     } catch (error) {

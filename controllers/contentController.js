@@ -3,10 +3,10 @@ const { executeQuery } = require('../config/database');
 // گرفتن محتواها
 const getContent = async (req, res) => {
     try {
-        const [contents] = await executeQuery(
+        const result = await executeQuery(
             'SELECT id, title, content_type, category, duration_minutes, view_count, like_count FROM content_library WHERE is_published = TRUE ORDER BY view_count DESC'
         );
-        res.json({ success: true, data: contents });
+        res.json({ success: true, data: result.rows });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطا در بارگذاری محتواها' });
     }
@@ -15,14 +15,14 @@ const getContent = async (req, res) => {
 // گرفتن یک محتوا خاص
 const getContentById = async (req, res) => {
     try {
-        const [contents] = await executeQuery(
-            'SELECT * FROM content_library WHERE id = ? AND is_published = TRUE',
+        const result = await executeQuery(
+            'SELECT * FROM content_library WHERE id = $1 AND is_published = TRUE',
             [req.params.id]
         );
-        if (contents.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'محتوا یافت نشد' });
         }
-        res.json({ success: true, data: contents[0] });
+        res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطا در بارگذاری محتوا' });
     }
@@ -32,7 +32,7 @@ const getContentById = async (req, res) => {
 const toggleContentLike = async (req, res) => {
     try {
         await executeQuery(
-            'UPDATE content_library SET like_count = like_count + 1 WHERE id = ?',
+            'UPDATE content_library SET like_count = like_count + 1 WHERE id = $1',
             [req.params.id]
         );
         res.json({ success: true, message: 'محتوا لایک شد' });
@@ -45,7 +45,7 @@ const toggleContentLike = async (req, res) => {
 const markContentCompleted = async (req, res) => {
     try {
         await executeQuery(
-            'INSERT INTO user_progress (user_id, activity_type, related_content_id, points_earned) VALUES (?, ?, ?, ?)',
+            'INSERT INTO user_progress (user_id, activity_type, related_content_id, points_earned) VALUES ($1, $2, $3, $4)',
             [req.user.userId, 'content_completed', req.params.id, 10]
         );
         res.json({ success: true, message: 'محتوا تکمیل شد' });
@@ -57,10 +57,10 @@ const markContentCompleted = async (req, res) => {
 // گرفتن دسته‌بندی‌ها
 const getContentCategories = async (req, res) => {
     try {
-        const [categories] = await executeQuery(
+        const result = await executeQuery(
             'SELECT category, COUNT(*) as count FROM content_library WHERE is_published = TRUE GROUP BY category'
         );
-        res.json({ success: true, data: categories });
+        res.json({ success: true, data: result.rows });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطا در بارگذاری دسته‌بندی‌ها' });
     }

@@ -16,18 +16,16 @@ const transporter = nodemailer.createTransport({
 // ثبت‌نام
 const register = async (req, res) => {
     try {
-        console.log('Register Request Body:', req.body); // لاگ ورودی
+        console.log('Register Request Body:', req.body);
 
         const { email, password, fullName, phone } = req.body;
 
-        // بررسی فیلدهای ضروری
         if (!email || !password || !fullName) {
             return res.status(400).json({ success: false, message: 'فیلدهای ضروری ناقص هستند.' });
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
 
-        // تولید توکن تأیید
         const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
         let columns = ['email', 'password_hash', 'full_name', 'verification_token'];
@@ -40,8 +38,8 @@ const register = async (req, res) => {
             placeholders.push(`$${values.length}`);
         }
 
-        const query = `INSERT INTO users (${columns.join(', ')}) 
-                       VALUES (${placeholders.join(', ')}) 
+        const query = `INSERT INTO users (${columns.join(', ')})
+                       VALUES (${placeholders.join(', ')})
                        RETURNING id, email`;
         const result = await executeQuery(query, values);
 
@@ -50,7 +48,6 @@ const register = async (req, res) => {
 
         console.log('Verification link:', verificationLink);
 
-        // ارسال ایمیل فقط در صورت تنظیمات کامل
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,

@@ -2,10 +2,10 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, // مستقیم از DATABASE_URL استفاده کن
-    ssl: { rejectUnauthorized: false }, // برای Render لازم است
-    connectionTimeoutMillis: 20000, // افزایش زمان اتصال برای جلوگیری از ETIMEDOUT
-    keepAlive: true // نگه داشتن اتصال برای پایداری
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 20000,
+    keepAlive: true
 });
 
 // تست اتصال به دیتابیس

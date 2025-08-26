@@ -9,14 +9,12 @@ const validateEmail = (email) => {
 // اعتبارسنجی رمز عبور
 const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-    console.log(`Password: ${password}, Length: ${password.length}, Valid: ${passwordRegex.test(password)}`);
     return passwordRegex.test(password);
 };
 
 // اعتبارسنجی نام کامل
 const validateFullName = (fullName) => {
     const fullNameRegex = /^[\u0600-\u06FF\s\u2000-\u200F]{2,}$/;
-    console.log(`FullName: ${fullName}, Length: ${fullName.length}, Valid: ${fullNameRegex.test(fullName)}`);
     return fullNameRegex.test(fullName);
 };
 
@@ -92,4 +90,14 @@ const validateAssessment = (req, res, next) => {
     }
 
     if (typeof total_score !== 'number' || total_score < 0 || total_score > max_possible_score) {
-        return res.status(400).json({ success: false, message: 'امتیاز کل نامعتبر است
+        return res.status(400).json({ success: false, message: 'امتیاز کل نامعتبر است' });
+    }
+
+    next();
+};
+
+module.exports = {
+    validateRegister,
+    validateLogin,
+    validateAssessment
+};

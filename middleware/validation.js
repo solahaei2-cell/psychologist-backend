@@ -18,7 +18,7 @@ const validateFullName = (fullName) => {
     return fullNameRegex.test(fullName);
 };
 
-// میدلور اعتبارسنجی ثبت‌نام
+// middleware ثبت‌نام
 const validateRegister = (req, res, next) => {
     const { email, password, fullName, phone } = req.body;
 
@@ -44,7 +44,7 @@ const validateRegister = (req, res, next) => {
     next();
 };
 
-// میدلور اعتبارسنجی ورود
+// middleware ورود
 const validateLogin = (req, res, next) => {
     const { email, password } = req.body;
 
@@ -59,29 +59,19 @@ const validateLogin = (req, res, next) => {
     next();
 };
 
-// میدلور اعتبارسنجی ارزیابی
+// middleware ارزیابی
 const validateAssessment = (req, res, next) => {
-    const {
-        assessment_type,
-        questions,
-        answers,
-        total_score,
-        max_possible_score,
-        result_category
-    } = req.body;
+    const { assessment_type, questions, answers, total_score, max_possible_score, result_category } = req.body;
 
-    if (
-        !assessment_type ||
-        ![
-            'quick_screening',
-            'anxiety_gad7',
-            'depression_phq9',
-            'sleep_quality',
-            'life_satisfaction',
-            'stress_level',
-            'comprehensive'
-        ].includes(assessment_type)
-    ) {
+    if (!assessment_type || ![
+        'quick_screening',
+        'anxiety_gad7',
+        'depression_phq9',
+        'sleep_quality',
+        'life_satisfaction',
+        'stress_level',
+        'comprehensive'
+    ].includes(assessment_type)) {
         return res.status(400).json({ success: false, message: 'نوع ارزیابی نامعتبر است' });
     }
 
@@ -96,8 +86,24 @@ const validateAssessment = (req, res, next) => {
     next();
 };
 
+// middleware بررسی وجود کاربر (ایمیل تکراری)
+const checkUserExists = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const result = await executeQuery('SELECT id FROM users WHERE email = $1', [email]);
+        if (result.rows.length > 0) {
+            return res.status(400).json({ success: false, message: 'ایمیل قبلاً ثبت شده است' });
+        }
+        next();
+    } catch (error) {
+        console.error('❌ checkUserExists Error:', error);
+        res.status(500).json({ success: false, message: 'خطا در بررسی وجود کاربر' });
+    }
+};
+
 module.exports = {
     validateRegister,
     validateLogin,
-    validateAssessment
+    validateAssessment,
+    checkUserExists
 };

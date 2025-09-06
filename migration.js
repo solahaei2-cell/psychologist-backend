@@ -27,6 +27,9 @@ async function migrate() {
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             full_name TEXT,
+            mobile VARCHAR(20),
+            gender VARCHAR(10),
+            acceptTerms BOOLEAN DEFAULT FALSE,
             phone TEXT,
             verification_token TEXT,
             is_verified BOOLEAN DEFAULT FALSE,
@@ -41,6 +44,9 @@ async function migrate() {
     // اضافه کردن ستون‌های جدید اگه جدول از قبل وجود داره
     const addColumns = `
         ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS mobile VARCHAR(20),
+        ADD COLUMN IF NOT EXISTS gender VARCHAR(10),
+        ADD COLUMN IF NOT EXISTS acceptTerms BOOLEAN DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS phone TEXT,
         ADD COLUMN IF NOT EXISTS verification_token TEXT,
         ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE,

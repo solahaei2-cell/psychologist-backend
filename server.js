@@ -29,12 +29,14 @@ const assessmentsRoutes = require('./routes/assessments');
 const contentRoutes = require('./routes/content');
 const usersRoutes = require('./routes/users');
 const chatRoutes = require('./routes/chat');
+const migrateRoute = require('./routes/migrate'); // اضافه کردن route موقت migration
 
 app.use('/api/auth', authRoutes);
 app.use('/api/assessments', assessmentsRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/migrate', migrateRoute); // ثبت route migration
 
 // Health Check
 app.get('/health', (req, res) => {

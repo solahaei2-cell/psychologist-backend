@@ -3,12 +3,15 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 
-// Middleware
-app.use(cors());
+// ✅ Middleware
+app.use(cors({
+  origin: "https://psychologist-frontend-app.onrender.com", // فقط فرانت‌اند آنلاین اجازه داره
+  credentials: true // اجازه ارسال کوکی/توکن
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root route برای جلوگیری از Cannot GET /
+// ✅ Root route برای جلوگیری از Cannot GET /
 app.get('/', (req, res) => {
   res.send(`
     <html lang="fa" dir="rtl">
@@ -23,7 +26,7 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Routes
+// ✅ Routes
 const authRoutes = require('./routes/auth');
 const assessmentsRoutes = require('./routes/assessments');
 const contentRoutes = require('./routes/content');
@@ -38,24 +41,24 @@ app.use('/api/users', usersRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/migrate', migrateRoute); // ثبت route migration
 
-// Health Check
+// ✅ Health Check
 app.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        message: 'سرور روان‌شناس هوشمند فعال است',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
-    });
+  res.json({
+    success: true,
+    message: 'سرور روان‌شناس هوشمند فعال است',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
-// Error Handling
+// ✅ Error Handling
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ success: false, message: 'خطای داخلی سرور' });
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: 'خطای داخلی سرور' });
 });
 
-// تنظیم پورت فقط برای Render
+// ✅ تنظیم پورت فقط برای Render
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 سرور روان‌شناس هوشمند راه‌اندازی شد! 📍 آدرس: http://localhost:${PORT}`);
+  console.log(`🚀 سرور روان‌شناس هوشمند راه‌اندازی شد! 📍 آدرس: http://localhost:${PORT}`);
 });

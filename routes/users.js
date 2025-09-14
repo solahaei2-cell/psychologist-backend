@@ -72,4 +72,42 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// 🔹 گرفتن پروفایل کاربر لاگین شده
+router.get('/profile', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id; // از توکن
+        const result = await executeQuery(
+            'SELECT id, full_name, email, gender, phone FROM users WHERE id=$1',
+            [userId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'کاربر یافت نشد' });
+        }
+        res.json({ success: true, data: result.rows[0] });
+    } catch (err) {
+        console.error('Error fetching profile:', err);
+        res.status(500).json({ success: false, message: 'مشکل در دریافت پروفایل' });
+    }
+});
+
+// 🔹 گرفتن آمار کاربر لاگین شده
+router.get('/stats', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const recs = await executeQuery('SELECT COUNT(*) FROM recommendations WHERE user_id=$1', [userId]);
+        const assessments = await executeQuery('SELECT COUNT(*) FROM assessments WHERE user_id=$1', [userId]);
+
+        res.json({
+            success: true,
+            data: {
+                recommendations: recs.rows[0].count,
+                assessments: assessments.rows[0].count
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching user stats:', err);
+        res.status(500).json({ success: false, message: 'مشکل در دریافت آمار کاربر' });
+    }
+});
+
 module.exports = router;

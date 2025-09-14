@@ -1,64 +1,27 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
+const bodyParser = require('body-parser');
 require('dotenv').config();
 
-// ✅ Middleware
-app.use(cors({
-  origin: "https://psychologist-frontend-app.onrender.com", // فقط فرانت‌اند آنلاین اجازه داره
-  credentials: true // اجازه ارسال کوکی/توکن
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const app = express();
 
-// ✅ Root route برای جلوگیری از Cannot GET /
+// میدل‌ورها
+app.use(cors());
+app.use(bodyParser.json());
+
+// 📌 routeها
+app.use('/api/users', require('./routes/users'));
+app.use('/api/recommendations', require('./routes/recommendations'));
+app.use('/api/assessments', require('./routes/assessments'));
+app.use('/api/stats', require('./routes/stats'));
+
+// تست سالم بودن سرور
 app.get('/', (req, res) => {
-  res.send(`
-    <html lang="fa" dir="rtl">
-      <head><meta charset="utf-8"><title>روان‌شناس هوشمند</title></head>
-      <body style="background:#0b1020;color:#eaeaf3;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
-        <div>
-          <h1>🚀 Backend آنلاین است</h1>
-          <p>برای بررسی وضعیت <a href="/health" style="color:#9da8ff;">اینجا</a> کلیک کن.</p>
-        </div>
-      </body>
-    </html>
-  `);
+    res.send('✅ Server is running...');
 });
 
-// ✅ Routes
-const authRoutes = require('./routes/auth');
-const assessmentsRoutes = require('./routes/assessments');
-const contentRoutes = require('./routes/content');
-const usersRoutes = require('./routes/users');
-const chatRoutes = require('./routes/chat');
-const migrateRoute = require('./routes/migrate'); // اضافه کردن route موقت migration
-
-app.use('/api/auth', authRoutes);
-app.use('/api/assessments', assessmentsRoutes);
-app.use('/api/content', contentRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/migrate', migrateRoute); // ثبت route migration
-
-// ✅ Health Check
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'سرور روان‌شناس هوشمند فعال است',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// ✅ Error Handling
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, message: 'خطای داخلی سرور' });
-});
-
-// ✅ تنظیم پورت فقط برای Render
+// پورت از .env یا پیشفرض 5000
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 سرور روان‌شناس هوشمند راه‌اندازی شد! 📍 آدرس: http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
 });

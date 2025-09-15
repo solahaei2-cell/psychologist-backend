@@ -6,14 +6,20 @@ require('dotenv').config();
 const app = express();
 
 // میدل‌ورها
-app.use(cors({
+// CORS با تنظیمات صریح برای هدر Authorization و متدها
+const corsOptions = {
     origin: [
         'https://psychologist-frontend-app.onrender.com',
         'http://localhost:3000',
         'http://localhost:5173'
     ],
-    credentials: true
-}));
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+// هندل preflight به صورت سراسری
+app.options('*', cors(corsOptions));
 app.use(bodyParser.json());
 
 // 📌 routeها

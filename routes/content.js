@@ -9,7 +9,7 @@ router.get('/', optionalAuth, async (req, res) => {
         const contents = await executeQuery(
             'SELECT id, title, content_type, category, duration_minutes, view_count, like_count FROM content_library WHERE is_published = TRUE ORDER BY view_count DESC'
         );
-        res.json({ success: true, data: contents });
+        res.json({ success: true, data: contents.rows });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطا در بارگذاری محتواها' });
     }
@@ -22,10 +22,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
             'SELECT * FROM content_library WHERE id = $1 AND is_published = TRUE',
             [req.params.id]
         );
-        if (contents.length === 0) {
+        if (contents.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'محتوا یافت نشد' });
         }
-        res.json({ success: true, data: contents[0] });
+        res.json({ success: true, data: contents.rows[0] });
     } catch (error) {
         res.status(500).json({ success: false, message: 'خطا در بارگذاری محتوا' });
     }
@@ -49,7 +49,7 @@ router.post('/:id/complete', authenticateToken, async (req, res) => {
     try {
         await executeQuery(
             'INSERT INTO user_progress (user_id, activity_type, related_content_id, points_earned) VALUES ($1, $2, $3, $4)',
-            [req.user.userId, 'content_completed', req.params.id, 10]
+            [req.user.id, 'content_completed', req.params.id, 10]
         );
         res.json({ success: true, message: 'محتوا تکمیل شد' });
     } catch (error) {

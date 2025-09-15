@@ -6,14 +6,25 @@ require('dotenv').config();
 const app = express();
 
 // میدل‌ورها
-app.use(cors());
+app.use(cors({
+    origin: [
+        'https://psychologist-frontend-app.onrender.com',
+        'http://localhost:3000',
+        'http://localhost:5173'
+    ],
+    credentials: true
+}));
 app.use(bodyParser.json());
 
 // 📌 routeها
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/recommendations', require('./routes/recommendations'));
 app.use('/api/assessments', require('./routes/assessments'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/chat', require('./routes/chat'));
+app.use('/api/content', require('./routes/content'));
+app.use('/api/consultation', require('./routes/consultation'));
 
 // تست سالم بودن سرور
 app.get('/', (req, res) => {

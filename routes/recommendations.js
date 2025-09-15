@@ -3,18 +3,71 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { executeQuery } = require('../config/database');
 
-// گرفتن همه توصیه‌ها
+// گرفتن پیشنهادات شخصی‌سازی‌شده برای کاربر لاگین شده
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const result = await executeQuery('SELECT id, title, description, user_id FROM recommendations');
-        res.status(200).json({ success: true, data: result.rows });
+        const userId = req.user.id;
+        
+        // پیشنهادات بر اساس آخرین ارزیابی‌های کاربر
+        const result = await executeQuery(`
+            SELECT 
+                'assessment' as type,
+                'depression' as id,
+                'ارزیابی افسردگی' as title,
+                'بررسی وضعیت روحی و احساسات شما' as description
+            WHERE NOT EXISTS (
+                SELECT 1 FROM assessments 
+                WHERE user_id = $1 AND assessment_type = 'depression' 
+                AND created_at > NOW() - INTERVAL '30 days'
+            )
+            UNION ALL
+            SELECT 
+                'assessment' as type,
+                'anxiety' as id,
+                'ارزیابی اضطراب' as title,
+                'سنجش میزان اضطراب و نگرانی‌های شما' as description
+            WHERE NOT EXISTS (
+                SELECT 1 FROM assessments 
+                WHERE user_id = $1 AND assessment_type = 'anxiety' 
+                AND created_at > NOW() - INTERVAL '30 days'
+            )
+            UNION ALL
+            SELECT 
+                'content' as type,
+                'stress-management' as id,
+                'تکنیک‌های مدیریت استرس' as title,
+                'یادگیری روش‌های کاهش استرس روزانه' as description
+            UNION ALL
+            SELECT 
+                'content' as type,
+                'mindfulness' as id,
+                'تمرینات ذهن‌آگاهی' as title,
+                'تمرینات مدیتیشن و آرامش ذهن' as description
+            LIMIT 4
+        `, [userId]);
+        
+        res.json(result.rows);
     } catch (error) {
         console.error('Error fetching recommendations:', error);
-        res.status(500).json({ success: false, message: 'مشکلی در دریافت توصیه‌ها رخ داده' });
+        res.status(500).json({ success: false, message: 'مشکلی در دریافت پیشنهادات رخ داده' });
     }
 });
 
-// گرفتن توصیه‌ها برای یک کاربر
+// گرفتن توصیه‌های کاربر لاگین شده
+router.get('/my', authenticateToken, async (req, res) => {
+    try {
+        const result = await executeQuery(
+            'SELECT id, title, description, created_at FROM recommendations WHERE user_id=$1 ORDER BY created_at DESC', 
+            [req.user.id]
+        );
+        res.status(200).json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error fetching user recommendations:', error);
+        res.status(500).json({ success: false, message: 'مشکلی در دریافت توصیه‌های شما رخ داده' });
+    }
+});
+
+// گرفتن توصیه‌ها برای یک کاربر (برای ادمین)
 router.get('/user/:userId', authenticateToken, async (req, res) => {
     try {
         const { userId } = req.params;

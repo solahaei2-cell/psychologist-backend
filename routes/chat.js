@@ -65,4 +65,32 @@ router.post('/:chatId/messages', authenticateToken, async (req, res) => {
     }
 });
 
+// ارسال پیام ساده (برای چت عمومی)
+router.post('/message', authenticateToken, async (req, res) => {
+    try {
+        const { message } = req.body;
+        
+        // پاسخ‌های نمونه ساده
+        const responses = [
+            "سلام! چطور می‌تونم کمکتون کنم؟",
+            "این موضوع جالبی است. می‌تونید بیشتر توضیح بدید؟",
+            "متوجه شدم. چه احساسی در این مورد دارید؟",
+            "این تجربه برای شما چطور بوده؟",
+            "ممنون که این موضوع رو با من در میان گذاشتید."
+        ];
+        
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        
+        res.json({ 
+            success: true, 
+            data: {
+                message: randomResponse,
+                reply: randomResponse
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'خطا در پردازش پیام' });
+    }
+});
+
 module.exports = router;

@@ -24,4 +24,26 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// آمار عمومی برای صفحه اصلی (بدون احراز هویت)
+router.get('/public', async (req, res) => {
+    try {
+        const users = await executeQuery('SELECT COUNT(*) FROM users WHERE is_active = TRUE');
+        const assessments = await executeQuery('SELECT COUNT(*) FROM assessments');
+        const content = await executeQuery('SELECT COUNT(*) FROM content_library WHERE is_published = TRUE');
+
+        res.json({
+            success: true,
+            data: {
+                activeUsers: parseInt(users.rows[0].count),
+                assessments: parseInt(assessments.rows[0].count),
+                content: parseInt(content.rows[0].count),
+                satisfaction: '95%'
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching public stats:', err);
+        res.status(500).json({ success: false, message: 'مشکل در دریافت آمار عمومی' });
+    }
+});
+
 module.exports = router;

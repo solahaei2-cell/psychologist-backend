@@ -88,6 +88,7 @@ const optionalAuth = async (req, res, next) => {
 
             if (result.rows.length > 0) {
                 req.user = {
+                    id: result.rows[0].id,
                     userId: result.rows[0].id,
                     email: result.rows[0].email,
                     fullName: result.rows[0].full_name

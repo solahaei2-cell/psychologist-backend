@@ -4,8 +4,8 @@ const { executeQuery } = require('../config/database');
 const getChatSessions = async (req, res) => {
     try {
         const { rows } = await executeQuery(
-            'SELECT id, session_type, started_at FROM chat_sessions WHERE user_id = ? ORDER BY started_at DESC',
-            [req.user.userId]
+            'SELECT id, session_type, started_at FROM chat_sessions WHERE user_id = $1 ORDER BY started_at DESC',
+            [req.user.id]
         );
         res.json({ success: true, data: rows });
     } catch (error) {

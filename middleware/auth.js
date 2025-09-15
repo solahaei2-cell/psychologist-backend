@@ -6,6 +6,11 @@ const authenticateToken = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
+        if (!authHeader) {
+            console.warn('Auth middleware: Missing Authorization header for', req.method, req.originalUrl, 'origin:', req.headers.origin);
+        } else {
+            console.log('Auth middleware: Authorization header detected. Prefix:', String(authHeader).slice(0, 16) + '...');
+        }
 
         if (!token) {
             return res.status(401).json({
@@ -15,6 +20,9 @@ const authenticateToken = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.userId) {
+            console.warn('Auth middleware: Decoded token invalid structure');
+        }
 
         const result = await executeQuery(
             'SELECT id, email, full_name, is_active, is_verified FROM users WHERE id = $1',

@@ -11,10 +11,26 @@ router.get('/history', authenticateToken, async (req, res) => {
             'SELECT id, assessment_type, total_score, result, created_at FROM assessments WHERE user_id=$1 ORDER BY created_at DESC',
             [userId]
         );
-        res.json({ success: true, data: result.rows });
+        // بازگرداندن آرایه ساده برای سازگاری با فرانت‌اند
+        res.json(result.rows);
     } catch (err) {
         console.error('Error fetching assessment history:', err);
         res.status(500).json({ success: false, message: 'مشکل در تاریخچه ارزیابی‌ها' });
+    }
+});
+
+// ثبت ساده ارزیابی از فرانت‌اند (سازگار با صفحات GAD7/PHQ9/Quick)
+router.post('/submit', authenticateToken, async (req, res) => {
+    try {
+        const { type, score, date } = req.body;
+        await executeQuery(
+            'INSERT INTO assessments (user_id, assessment_type, total_score, result, created_at) VALUES ($1, $2, $3, $4, $5)',
+            [req.user.id, type, score, null, date ? new Date(date) : new Date()]
+        );
+        return res.json({ success: true, message: 'ارزیابی ثبت شد' });
+    } catch (err) {
+        console.error('Error submitting assessment:', err);
+        return res.status(500).json({ success: false, message: 'خطا در ثبت ارزیابی' });
     }
 });
 

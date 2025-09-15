@@ -63,7 +63,7 @@ app.get('/clear-users', async (req, res) => {
 });
 
 // endpoint عمومی برای آمار (بدون نیاز به authentication)
-app.get('/api/public-stats', async (req, res) => {
+app.get('/api/stats/public', async (req, res) => {
     try {
         const { executeQuery } = require('./config/database');
         

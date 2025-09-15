@@ -43,6 +43,25 @@ app.get('/setup-database', async (req, res) => {
     }
 });
 
+// endpoint برای پاک کردن همه کاربران (فقط برای تست)
+app.get('/clear-users', async (req, res) => {
+    try {
+        const { executeQuery } = require('./config/database');
+        
+        // پاک کردن داده‌های مرتبط با کاربران
+        await executeQuery('DELETE FROM assessment_answers');
+        await executeQuery('DELETE FROM assessments');
+        await executeQuery('DELETE FROM consultation_requests');
+        await executeQuery('DELETE FROM user_content_progress');
+        await executeQuery('DELETE FROM users');
+        
+        res.json({ success: true, message: 'All users and related data cleared successfully!' });
+    } catch (error) {
+        console.error('Clear users error:', error);
+        res.status(500).json({ success: false, message: 'Failed to clear users', error: error.message });
+    }
+});
+
 // پورت از .env یا پیشفرض 5000
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

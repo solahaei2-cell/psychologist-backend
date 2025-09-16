@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const { signToken, verifyToken } = require('../utils/jwt');
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -53,7 +54,7 @@ const register = async (req, res) => {
 
         // هش کردن رمز
         const passwordHash = await bcrypt.hash(password, 12);
-        const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const verificationToken = signToken({ email }, { expiresIn: '1d' });
 
         const columns = ['email', 'password_hash', 'full_name', 'mobile', 'gender', 'verification_token'];
         const values = [email, passwordHash, fullName, mobile, gender, verificationToken];
@@ -95,7 +96,7 @@ const register = async (req, res) => {
 const verifyEmail = async (req, res) => {
     try {
         const { token } = req.params;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = verifyToken(token);
         const email = decoded.email;
 
         const result = await executeQuery(
@@ -142,7 +143,7 @@ const login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'ایمیل شما تأیید نشده است.' });
         }
 
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const token = signToken({ userId: user.id }, { expiresIn: '7d' });
         await executeQuery('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
         res.json({ success: true, token });

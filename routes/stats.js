@@ -27,12 +27,12 @@ router.get('/', authenticateToken, async (req, res) => {
 // آمار عمومی برای صفحه اصلی (بدون احراز هویت)
 router.get('/public', async (req, res) => {
     try {
-        // توجه: executeQuery به صورت آرایه برمی‌گرداند نه users.rows
-        const usersRows = await executeQuery('SELECT COUNT(*) AS count FROM users');
-        const assessmentsRows = await executeQuery('SELECT COUNT(*) AS count FROM assessments');
+        // executeQuery نتیجه را به صورت آبجکت با rows برمی‌گرداند
+        const usersRes = await executeQuery('SELECT COUNT(*) AS count FROM users');
+        const assessmentsRes = await executeQuery('SELECT COUNT(*) AS count FROM assessments');
 
-        const activeUsers = parseInt(usersRows?.[0]?.count || 0, 10);
-        const assessments = parseInt(assessmentsRows?.[0]?.count || 0, 10);
+        const activeUsers = parseInt(usersRes?.rows?.[0]?.count || 0, 10);
+        const assessments = parseInt(assessmentsRes?.rows?.[0]?.count || 0, 10);
 
         // در حال حاضر جدول محتوا ممکن است وجود نداشته باشد؛ یک مقدار ثابت امن برمی‌گردانیم
         const content = 45;

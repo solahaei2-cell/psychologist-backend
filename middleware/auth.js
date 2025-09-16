@@ -1,6 +1,7 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
 const { executeQuery } = require('../config/database');
+const { verifyToken } = require('../utils/jwt');
 
 const authenticateToken = async (req, res, next) => {
     try {
@@ -19,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = verifyToken(token);
         if (!decoded || !decoded.userId) {
             console.warn('Auth middleware: Decoded token invalid structure');
         }
@@ -88,7 +89,7 @@ const optionalAuth = async (req, res, next) => {
         const token = authHeader && authHeader.split(' ')[1];
 
         if (token) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = verifyToken(token);
             const result = await executeQuery(
                 'SELECT id, email, full_name FROM users WHERE id = $1 AND is_active = TRUE',
                 [decoded.userId]

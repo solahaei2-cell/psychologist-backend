@@ -139,11 +139,16 @@ const login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'رمز عبور اشتباه است.' });
         }
 
-        if (!user.is_verified) {
+        // Only enforce email verification strictly in production unless override flag is set
+        const allowUnverified = String(process.env.ALLOW_UNVERIFIED_LOGIN || '').toLowerCase() === 'true' || process.env.NODE_ENV !== 'production';
+        if (!user.is_verified && !allowUnverified) {
             return res.status(400).json({ success: false, message: 'ایمیل شما تأیید نشده است.' });
+        } else if (!user.is_verified && allowUnverified) {
+            console.warn('⚠️ Login allowed for unverified email due to ALLOW_UNVERIFIED_LOGIN or non-production env:', email);
         }
 
         const token = signToken({ userId: user.id }, { expiresIn: '7d' });
+        console.log('✅ Login success. Issued token for userId:', user.id);
         await executeQuery('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
         res.json({ success: true, token });

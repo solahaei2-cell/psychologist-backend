@@ -39,11 +39,15 @@ const authenticateToken = async (req, res, next) => {
 
         const user = result.rows[0];
 
-        if (user.is_active === false) {
+        const allowInactive = String(process.env.ALLOW_INACTIVE_LOGIN || '').toLowerCase() === 'true' || process.env.NODE_ENV !== 'production';
+        if (user.is_active === false && !allowInactive) {
+            console.warn('Auth middleware: user inactive -> 401', { userId: user.id, email: user.email });
             return res.status(401).json({
                 success: false,
                 message: 'حساب کاربری غیرفعال است'
             });
+        } else if (user.is_active === false && allowInactive) {
+            console.warn('⚠️ Auth middleware: allowing inactive user due to ALLOW_INACTIVE_LOGIN or non-production', { userId: user.id });
         }
 
         req.user = {

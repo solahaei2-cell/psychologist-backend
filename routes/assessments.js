@@ -111,4 +111,60 @@ router.get('/:assessmentId', authenticateToken, async (req, res) => {
     }
 });
 
+// ثبت ارزیابی برای کاربران مهمان (بدون احراز هویت)
+router.post('/guest-submit', async (req, res) => {
+    try {
+        const { type, score, date } = req.body;
+
+        // بررسی ورودی‌ها
+        if (!type || typeof score !== 'number') {
+            return res.status(400).json({
+                success: false,
+                message: 'نوع ارزیابی و امتیاز الزامی هستند'
+            });
+        }
+
+        // محاسبه نتیجه بر اساس نوع ارزیابی
+        let result = {};
+        switch (type) {
+            case 'GAD-7':
+                if (score <= 4) result.level = 'Minimal anxiety';
+                else if (score <= 9) result.level = 'Mild anxiety';
+                else if (score <= 14) result.level = 'Moderate anxiety';
+                else if (score <= 21) result.level = 'Severe anxiety';
+                break;
+            case 'PHQ-9':
+                if (score <= 4) result.level = 'Minimal depression';
+                else if (score <= 9) result.level = 'Mild depression';
+                else if (score <= 14) result.level = 'Moderate depression';
+                else if (score <= 19) result.level = 'Moderately severe depression';
+                else result.level = 'Severe depression';
+                break;
+            case 'Quick':
+                if (score <= 4) result.level = 'عالی';
+                else if (score <= 7) result.level = 'خفیف';
+                else if (score <= 11) result.level = 'متوسط';
+                else result.level = 'نگران‌کننده';
+                break;
+        }
+
+        return res.json({
+            success: true,
+            message: 'ارزیابی مهمان پردازش شد',
+            data: {
+                type,
+                score,
+                result,
+                processed_at: new Date().toISOString()
+            }
+        });
+    } catch (err) {
+        console.error('Error processing guest assessment:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'خطا در پردازش ارزیابی مهمان'
+        });
+    }
+});
+
 module.exports = router;
